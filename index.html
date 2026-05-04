@@ -3,202 +3,200 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TechTracker</title>
+    <title>Operations Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        /* Dark Theme Styles */
-        body.dark { background-color: #0f172a; color: #f1f5f9; }
-        .dark .card { background-color: #1e293b; border-color: #334155; color: white; }
-        .dark input, .dark select { background-color: #334155; border-color: #475569; color: white; }
-        .dark .stats-card { background-color: #1e293b; }
-        
-        .card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; background: white; transition: all 0.2s; }
-        #reportModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 50; align-items: center; justify-content: center; padding: 2rem; }
+        body { background-color: #0f172a; color: #f8fafc; font-family: sans-serif; }
+        .card-bg { background-color: #1e293b; border: 1px solid #334155; }
+        .nav-bg { background-color: #0f172a; border-top: 1px solid #334155; }
+        .active-nav { color: #3b82f6; }
+        .inactive-nav { color: #94a3b8; }
+        #reportModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100; align-items: center; justify-content: center; padding: 1.5rem; }
     </style>
 </head>
-<body id="appBody" class="bg-slate-50 min-h-screen p-4 md:p-8 transition-colors duration-300">
+<body class="pb-24">
 
     <div id="reportModal">
-        <div class="bg-white dark:bg-slate-800 w-full max-w-4xl p-6 rounded-xl shadow-2xl relative">
-            <button onclick="closeReport()" class="absolute top-4 right-4 text-2xl font-bold">&times;</button>
-            <h2 class="text-2xl font-bold mb-6">Expert Data Analysis</h2>
-            <div style="height: 400px;">
-                <canvas id="exportChart"></canvas>
-            </div>
+        <div class="card-bg w-full max-w-4xl p-6 rounded-2xl shadow-2xl relative">
+            <button onclick="closeReport()" class="absolute top-4 right-4 text-2xl">&times;</button>
+            <h2 class="text-xl font-bold mb-6">Expert Skill Analysis</h2>
+            <div style="height: 350px;"><canvas id="exportChart"></canvas></div>
         </div>
     </div>
 
-    <div class="max-w-5xl mx-auto">
-        <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-            <div>
-                <h1 class="text-3xl font-extrabold tracking-tight">TechTracker <span class="text-blue-600 font-medium">Expert</span></h1>
-                <p class="text-slate-500 dark:text-slate-400">Inventory & Proficiency Management</p>
-            </div>
-            <div class="flex gap-3">
-                <button onclick="toggleTheme()" class="bg-slate-200 dark:bg-slate-700 px-4 py-2 rounded-lg font-medium">🌓 Theme</button>
-                <button onclick="openReport()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium shadow-lg transition">📊 Export Report</button>
-            </div>
+    <div id="view-dashboard" class="p-6 max-w-lg mx-auto">
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold">Operations</h1>
+            <p class="text-slate-400">Floor summary & critical stats</p>
         </header>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <div class="card shadow-sm border-t-4 border-blue-500">
-                <h2 class="text-lg font-bold mb-4">Add Technician</h2>
-                <div class="grid grid-cols-2 gap-3 mb-4">
-                    <input type="text" id="t-name" placeholder="Name" class="border p-2 rounded-lg col-span-2">
-                    <input type="text" id="t-role" placeholder="Role" class="border p-2 rounded-lg">
-                    <input type="number" id="t-cap" placeholder="Rack Cap" class="border p-2 rounded-lg">
-                </div>
-                <button onclick="addTech()" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">Save Technician</button>
+        <div class="grid grid-cols-2 gap-4 mb-8">
+            <div class="card-bg p-5 rounded-2xl">
+                <i data-lucide="users" class="mb-2 text-slate-400"></i>
+                <div id="stat-tech-count" class="text-3xl font-bold">0</div>
+                <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Technicians</div>
             </div>
-
-            <div class="card shadow-sm border-t-4 border-green-500">
-                <h2 class="text-lg font-bold mb-4">Skill Inventory</h2>
-                <div class="flex gap-2 mb-4">
-                    <input type="text" id="new-skill" placeholder="New skill name..." class="flex-1 border p-2 rounded-lg">
-                    <button onclick="addSkill()" class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold text-xl">+</button>
-                </div>
-                <div id="skill-pills" class="flex flex-wrap gap-2"></div>
+            <div class="card-bg p-5 rounded-2xl">
+                <i data-lucide="database" class="mb-2 text-slate-400"></i>
+                <div id="stat-rack-cap" class="text-3xl font-bold">0</div>
+                <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Total Rack Cap</div>
+            </div>
+            <div class="card-bg p-5 rounded-2xl">
+                <i data-lucide="award" class="mb-2 text-slate-400"></i>
+                <div id="stat-avg-prof" class="text-3xl font-bold">0%</div>
+                <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Avg Proficiency</div>
+            </div>
+            <div class="card-bg p-5 rounded-2xl">
+                <i data-lucide="target" class="mb-2 text-slate-400"></i>
+                <div class="text-3xl font-bold">0%</div>
+                <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Goal Completion</div>
             </div>
         </div>
 
-        <div id="tech-container" class="space-y-4 pb-20"></div>
+        <section>
+            <div class="flex items-center gap-2 mb-4">
+                <i data-lucide="trophy" class="text-blue-500 w-5 h-5"></i>
+                <h2 class="text-xl font-semibold">Top Responders</h2>
+            </div>
+            <div id="top-responders-list" class="border-2 border-dashed border-slate-700 rounded-2xl p-10 text-center text-slate-500">
+                No technicians yet.
+            </div>
+        </section>
     </div>
+
+    <div id="view-technicians" class="hidden p-6 max-w-lg mx-auto">
+        <h2 class="text-2xl font-bold mb-6">Manage Techs</h2>
+        <div class="card-bg p-4 rounded-xl mb-6">
+            <input type="text" id="t-name" placeholder="Name" class="w-full bg-slate-800 border border-slate-700 p-2 rounded mb-2">
+            <input type="number" id="t-cap" placeholder="Rack Capacity" class="w-full bg-slate-800 border border-slate-700 p-2 rounded mb-4">
+            <button onclick="addTech()" class="w-full bg-blue-600 p-2 rounded font-bold">Add Tech</button>
+        </div>
+        <div id="tech-list" class="space-y-4"></div>
+    </div>
+
+    <div id="view-skills" class="hidden p-6 max-w-lg mx-auto">
+        <h2 class="text-2xl font-bold mb-4">Skill Inventory</h2>
+        <div class="flex gap-2 mb-6">
+            <input type="text" id="new-skill" class="flex-1 bg-slate-800 border border-slate-700 p-2 rounded">
+            <button onclick="addSkill()" class="bg-blue-600 px-4 rounded font-bold">+</button>
+        </div>
+        <div id="skills-pills" class="flex flex-wrap gap-2"></div>
+        <button onclick="openReport()" class="mt-8 w-full bg-slate-700 p-3 rounded-xl font-bold flex items-center justify-center gap-2">
+            <i data-lucide="bar-chart-3"></i> Export Expert Graph
+        </button>
+    </div>
+
+    <nav class="nav-bg fixed bottom-0 left-0 right-0 h-20 flex justify-around items-center px-4">
+        <button onclick="switchView('dashboard')" id="nav-dashboard" class="flex flex-col items-center active-nav">
+            <i data-lucide="home"></i>
+            <span class="text-[10px] mt-1">Dashboard</span>
+        </button>
+        <button onclick="switchView('technicians')" id="nav-technicians" class="flex flex-col items-center inactive-nav">
+            <i data-lucide="users"></i>
+            <span class="text-[10px] mt-1">Technicians</span>
+        </button>
+        <button onclick="switchView('skills')" id="nav-skills" class="flex flex-col items-center inactive-nav">
+            <i data-lucide="wrench"></i>
+            <span class="text-[10px] mt-1">Skills</span>
+        </button>
+        <button onclick="alert('Locking Dashboard...')" class="flex flex-col items-center inactive-nav">
+            <i data-lucide="lock"></i>
+            <span class="text-[10px] mt-1">Lock</span>
+        </button>
+    </nav>
 
     <script>
         let chartInstance = null;
-        let state = JSON.parse(localStorage.getItem('techTracker_v2')) || {
-            dark: false,
-            skills: ["Configuring Switches", "Compute Trays", "Replace Servers", "ADAM Logs", "Failure Proc", "Escalation Proc"],
+        let state = JSON.parse(localStorage.getItem('ops_dashboard_db')) || {
+            skills: ["Configuring Switches", "Compute Trays", "Replace Servers", "ADAM Logs"],
             techs: []
         };
 
         function save() {
-            localStorage.setItem('techTracker_v2', JSON.stringify(state));
+            localStorage.setItem('ops_dashboard_db', JSON.stringify(state));
             render();
         }
 
-        // --- Theme ---
-        function toggleTheme() {
-            state.dark = !state.dark;
-            save();
-        }
-
-        // --- Data Logic ---
-        function addSkill() {
-            const input = document.getElementById('new-skill');
-            const val = input.value.trim();
-            if (val && !state.skills.includes(val)) {
-                state.skills.push(val);
-                input.value = '';
-                save();
-            }
-        }
-
-        function removeSkill(skill) {
-            if(confirm(`Delete "${skill}"? This will remove it from all technicians.`)) {
-                state.skills = state.skills.filter(s => s !== skill);
-                state.techs.forEach(t => t.pro = t.pro.filter(s => s !== skill));
-                save();
-            }
+        function switchView(view) {
+            ['dashboard', 'technicians', 'skills'].forEach(v => {
+                document.getElementById(`view-${v}`).classList.add('hidden');
+                document.getElementById(`nav-${v}`).className = 'flex flex-col items-center inactive-nav';
+            });
+            document.getElementById(`view-${view}`).classList.remove('hidden');
+            document.getElementById(`nav-${view}`).className = 'flex flex-col items-center active-nav';
         }
 
         function addTech() {
-            const name = document.getElementById('t-name').value;
-            if(!name) return alert("Enter a name");
-            state.techs.push({
-                id: Date.now(),
-                name: name,
-                role: document.getElementById('t-role').value || "Technician",
-                cap: parseInt(document.getElementById('t-cap').value) || 1,
-                pro: []
-            });
-            save();
+            const n = document.getElementById('t-name').value;
+            if(!n) return;
+            state.techs.push({ id: Date.now(), name: n, cap: parseInt(document.getElementById('t-cap').value) || 1, pro: [] });
             document.getElementById('t-name').value = '';
+            save();
         }
 
-        function togglePro(id, skill) {
-            const t = state.techs.find(x => x.id === id);
+        function addSkill() {
+            const s = document.getElementById('new-skill').value;
+            if(s && !state.skills.includes(s)) state.skills.push(s);
+            document.getElementById('new-skill').value = '';
+            save();
+        }
+
+        function togglePro(tId, skill) {
+            const t = state.techs.find(x => x.id === tId);
             t.pro.includes(skill) ? t.pro = t.pro.filter(s => s !== skill) : t.pro.push(skill);
             save();
         }
 
-        function deleteTech(id) {
-            if(confirm("Remove this technician?")) {
-                state.techs = state.techs.filter(t => t.id !== id);
-                save();
-            }
-        }
-
-        // --- Export & Graphing ---
         function openReport() {
             document.getElementById('reportModal').style.display = 'flex';
             const ctx = document.getElementById('exportChart').getContext('2d');
-            
-            // Calculate proficiency counts
-            const skillCounts = state.skills.map(skill => {
-                return state.techs.filter(t => t.pro.includes(skill)).length;
-            });
-
+            const data = state.skills.map(s => state.techs.filter(t => t.pro.includes(s)).length);
             if(chartInstance) chartInstance.destroy();
             chartInstance = new Chart(ctx, {
                 type: 'bar',
-                data: {
-                    labels: state.skills,
-                    datasets: [{
-                        label: 'Proficient Technicians',
-                        data: skillCounts,
-                        backgroundColor: '#2563eb',
-                        borderRadius: 6
-                    }]
-                },
-                options: {
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: { beginAtZero: true, ticks: { precision: 0 } }
-                    }
-                }
+                data: { labels: state.skills, datasets: [{ label: 'Proficiency', data, backgroundColor: '#3b82f6' }] },
+                options: { maintainAspectRatio: false, color: '#fff' }
             });
         }
 
-        function closeReport() {
-            document.getElementById('reportModal').style.display = 'none';
-        }
+        function closeReport() { document.getElementById('reportModal').style.display = 'none'; }
 
-        // --- Render ---
         function render() {
-            document.getElementById('appBody').className = state.dark ? 'dark' : '';
+            // Stats
+            const totalCap = state.techs.reduce((a, b) => a + b.cap, 0);
+            document.getElementById('stat-tech-count').innerText = state.techs.length;
+            document.getElementById('stat-rack-cap').innerText = totalCap;
             
-            // Render Pills
-            document.getElementById('skill-pills').innerHTML = state.skills.map(s => `
-                <span class="bg-slate-200 dark:bg-slate-700 px-3 py-1 rounded-full text-xs font-medium flex items-center gap-2">
-                    ${s} <button onclick="removeSkill('${s}')" class="text-red-500 hover:text-red-700 font-bold">×</button>
-                </span>
-            `).join('');
+            const totalPossible = state.techs.length * state.skills.length;
+            const totalActual = state.techs.reduce((a, b) => a + b.pro.length, 0);
+            document.getElementById('stat-avg-prof').innerText = totalPossible ? Math.round((totalActual/totalPossible)*100) + '%' : '0%';
 
-            // Render Techs
-            document.getElementById('tech-container').innerHTML = state.techs.map(t => `
-                <div class="card shadow-md animate-in fade-in duration-500">
-                    <div class="flex justify-between items-start mb-6">
-                        <div>
-                            <h3 class="text-xl font-bold">${t.name}</h3>
-                            <p class="text-sm text-slate-500">${t.role} • Rack Capacity: ${t.cap}</p>
-                        </div>
-                        <button onclick="deleteTech(${t.id})" class="text-slate-400 hover:text-red-500 transition">Delete</button>
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                        ${state.skills.map(s => {
-                            const active = t.pro.includes(s);
-                            return `
-                                <div onclick="togglePro(${t.id}, '${s}')" class="flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition ${active ? 'bg-blue-50 border-blue-400 dark:bg-blue-900/30' : 'hover:bg-slate-50 dark:hover:bg-slate-700'}">
-                                    <input type="checkbox" ${active ? 'checked' : ''} class="w-4 h-4 text-blue-600">
-                                    <span class="text-sm ${active ? 'font-bold' : 'opacity-60'}">${s}</span>
-                                </div>
-                            `;
-                        }).join('')}
+            // Top Responders
+            const sorted = [...state.techs].sort((a, b) => b.pro.length - a.pro.length).slice(0, 3);
+            const list = document.getElementById('top-responders-list');
+            if(state.techs.length > 0) {
+                list.className = "space-y-2";
+                list.innerHTML = sorted.map(t => `<div class="card-bg p-3 rounded-xl flex justify-between"><span>${t.name}</span><span class="text-blue-400 font-bold">${t.pro.length} Skills</span></div>`).join('');
+            }
+
+            // Tech List
+            document.getElementById('tech-list').innerHTML = state.techs.map(t => `
+                <div class="card-bg p-4 rounded-xl">
+                    <div class="font-bold text-lg mb-3">${t.name} (Cap: ${t.cap})</div>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        ${state.skills.map(s => `
+                            <button onclick="togglePro(${t.id}, '${s}')" class="p-2 rounded border ${t.pro.includes(s) ? 'bg-blue-600 border-blue-400' : 'border-slate-700'}">${s}</button>
+                        `).join('')}
                     </div>
                 </div>
             `).join('');
+
+            // Skill Pills
+            document.getElementById('skills-pills').innerHTML = state.skills.map(s => `<span class="bg-slate-800 px-3 py-1 rounded-full text-sm border border-slate-700">${s}</span>`).join('');
+            
+            lucide.createIcons();
         }
 
         render();
