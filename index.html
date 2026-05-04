@@ -3,204 +3,197 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TechnicianTracker</title>
+    <title>TechTracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        .dark { background-color: #1a202c; color: #e2e8f0; }
-        .dark .card { background-color: #2d3748; border-color: #4a5568; color: white; }
-        .dark input { background-color: #4a5568; border-color: #718096; color: white; }
-        .card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; background: white; transition: all 0.3s; }
+        /* Dark Theme Styles */
+        body.dark { background-color: #0f172a; color: #f1f5f9; }
+        .dark .card { background-color: #1e293b; border-color: #334155; color: white; }
+        .dark input, .dark select { background-color: #334155; border-color: #475569; color: white; }
+        .dark .stats-card { background-color: #1e293b; }
+        
+        .card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; background: white; transition: all 0.2s; }
+        #reportModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 50; align-items: center; justify-content: center; padding: 2rem; }
     </style>
 </head>
-<body id="body-root" class="bg-gray-50 p-4 md:p-8 min-h-screen">
+<body id="appBody" class="bg-slate-50 min-h-screen p-4 md:p-8 transition-colors duration-300">
+
+    <div id="reportModal">
+        <div class="bg-white dark:bg-slate-800 w-full max-w-4xl p-6 rounded-xl shadow-2xl relative">
+            <button onclick="closeReport()" class="absolute top-4 right-4 text-2xl font-bold">&times;</button>
+            <h2 class="text-2xl font-bold mb-6">Expert Data Analysis</h2>
+            <div style="height: 400px;">
+                <canvas id="exportChart"></canvas>
+            </div>
+        </div>
+    </div>
+
     <div class="max-w-5xl mx-auto">
-        <header class="flex justify-between items-center mb-8">
-            <h1 class="text-3xl font-bold">TechTracker Admin</h1>
-            <div class="flex gap-4">
-                <button onclick="toggleDarkMode()" class="px-3 py-1 bg-gray-700 text-white rounded text-sm">🌓 Toggle Theme</button>
-                <button onclick="resetData()" class="text-xs text-red-500 hover:underline">Reset All</button>
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+            <div>
+                <h1 class="text-3xl font-extrabold tracking-tight">TechTracker <span class="text-blue-600 font-medium">Expert</span></h1>
+                <p class="text-slate-500 dark:text-slate-400">Inventory & Proficiency Management</p>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="toggleTheme()" class="bg-slate-200 dark:bg-slate-700 px-4 py-2 rounded-lg font-medium">🌓 Theme</button>
+                <button onclick="openReport()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium shadow-lg transition">📊 Export Report</button>
             </div>
         </header>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            <div id="stats-container" class="lg:col-span-1 space-y-4"></div>
-            <div class="lg:col-span-2 card shadow-sm">
-                <h2 class="text-lg font-bold mb-2">Skill Distribution</h2>
-                <canvas id="skillChart" height="150"></canvas>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div class="card shadow-sm border-t-4 border-blue-500">
+                <h2 class="text-lg font-bold mb-4">Add Technician</h2>
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <input type="text" id="t-name" placeholder="Name" class="border p-2 rounded-lg col-span-2">
+                    <input type="text" id="t-role" placeholder="Role" class="border p-2 rounded-lg">
+                    <input type="number" id="t-cap" placeholder="Rack Cap" class="border p-2 rounded-lg">
+                </div>
+                <button onclick="addTech()" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">Save Technician</button>
+            </div>
+
+            <div class="card shadow-sm border-t-4 border-green-500">
+                <h2 class="text-lg font-bold mb-4">Skill Inventory</h2>
+                <div class="flex gap-2 mb-4">
+                    <input type="text" id="new-skill" placeholder="New skill name..." class="flex-1 border p-2 rounded-lg">
+                    <button onclick="addSkill()" class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold text-xl">+</button>
+                </div>
+                <div id="skill-pills" class="flex flex-wrap gap-2"></div>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <section class="card shadow-sm">
-                <h2 class="text-xl font-semibold mb-4">Add Technician</h2>
-                <div class="space-y-3">
-                    <input type="text" id="tech-name" placeholder="Name" class="w-full border p-2 rounded">
-                    <input type="text" id="tech-role" placeholder="Role" class="w-full border p-2 rounded">
-                    <input type="number" id="tech-capacity" placeholder="Rack Capacity" class="w-full border p-2 rounded">
-                    <button onclick="addTechnician()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Add Tech</button>
-                </div>
-            </section>
-
-            <section class="card shadow-sm">
-                <h2 class="text-xl font-semibold mb-4">Manage Skills</h2>
-                <div class="flex gap-2 mb-4">
-                    <input type="text" id="new-skill-name" placeholder="e.g. Fiber Splicing" class="flex-1 border p-2 rounded">
-                    <button onclick="addSkill()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">+</button>
-                </div>
-                <div id="skills-list" class="flex flex-wrap gap-2 text-xs"></div>
-            </section>
-        </div>
-
-        <section>
-            <h2 class="text-xl font-semibold mb-4">Technicians</h2>
-            <div id="tech-list" class="space-y-4"></div>
-        </section>
+        <div id="tech-container" class="space-y-4 pb-20"></div>
     </div>
 
     <script>
-        let myChart = null;
-        let state = JSON.parse(localStorage.getItem('techTrackerData')) || {
-            technicians: [],
-            skills: ["Configuring Switches", "Configuring Compute Trays", "Replacing Servers", "Finding Logs", "Failure Procedures", "Escalation"],
-            darkMode: false
+        let chartInstance = null;
+        let state = JSON.parse(localStorage.getItem('techTracker_v2')) || {
+            dark: false,
+            skills: ["Configuring Switches", "Compute Trays", "Replace Servers", "ADAM Logs", "Failure Proc", "Escalation Proc"],
+            techs: []
         };
 
         function save() {
-            localStorage.setItem('techTrackerData', JSON.stringify(state));
+            localStorage.setItem('techTracker_v2', JSON.stringify(state));
             render();
         }
 
-        // --- THEME ---
-        function toggleDarkMode() {
-            state.darkMode = !state.darkMode;
+        // --- Theme ---
+        function toggleTheme() {
+            state.dark = !state.dark;
             save();
         }
 
-        function applyTheme() {
-            const body = document.getElementById('body-root');
-            state.darkMode ? body.classList.add('dark') : body.classList.remove('dark');
-        }
-
-        // --- LOGIC ---
+        // --- Data Logic ---
         function addSkill() {
-            const name = document.getElementById('new-skill-name').value.trim();
-            if (name && !state.skills.includes(name)) {
-                state.skills.push(name);
-                document.getElementById('new-skill-name').value = '';
+            const input = document.getElementById('new-skill');
+            const val = input.value.trim();
+            if (val && !state.skills.includes(val)) {
+                state.skills.push(val);
+                input.value = '';
                 save();
             }
         }
 
-        function removeSkill(skillName) {
-            if(confirm(`Remove "${skillName}" from all profiles?`)) {
-                state.skills = state.skills.filter(s => s !== skillName);
-                state.technicians.forEach(t => {
-                    t.proficiencies = t.proficiencies.filter(p => p !== skillName);
-                });
+        function removeSkill(skill) {
+            if(confirm(`Delete "${skill}"? This will remove it from all technicians.`)) {
+                state.skills = state.skills.filter(s => s !== skill);
+                state.techs.forEach(t => t.pro = t.pro.filter(s => s !== skill));
                 save();
             }
         }
 
-        function addTechnician() {
-            const name = document.getElementById('tech-name').value;
-            if(!name) return alert("Name required");
-            state.technicians.push({
+        function addTech() {
+            const name = document.getElementById('t-name').value;
+            if(!name) return alert("Enter a name");
+            state.techs.push({
                 id: Date.now(),
-                name,
-                role: document.getElementById('tech-role').value || "Technician",
-                rack_capacity: parseInt(document.getElementById('tech-capacity').value) || 1,
-                proficiencies: []
+                name: name,
+                role: document.getElementById('t-role').value || "Technician",
+                cap: parseInt(document.getElementById('t-cap').value) || 1,
+                pro: []
             });
             save();
-            document.getElementById('tech-name').value = '';
+            document.getElementById('t-name').value = '';
         }
 
-        function toggleProficiency(techId, skill) {
-            const tech = state.technicians.find(t => t.id === techId);
-            tech.proficiencies.includes(skill) 
-                ? tech.proficiencies = tech.proficiencies.filter(p => p !== skill)
-                : tech.proficiencies.push(skill);
+        function togglePro(id, skill) {
+            const t = state.techs.find(x => x.id === id);
+            t.pro.includes(skill) ? t.pro = t.pro.filter(s => s !== skill) : t.pro.push(skill);
             save();
         }
 
         function deleteTech(id) {
-            state.technicians = state.technicians.filter(t => t.id !== id);
-            save();
+            if(confirm("Remove this technician?")) {
+                state.techs = state.techs.filter(t => t.id !== id);
+                save();
+            }
         }
 
-        function resetData() {
-            if(confirm("Wipe all data?")) { localStorage.clear(); location.reload(); }
-        }
-
-        // --- GRAPHING ---
-        function updateChart() {
-            const ctx = document.getElementById('skillChart').getContext('2d');
-            const dataMap = state.skills.map(skill => {
-                return state.technicians.filter(t => t.proficiencies.includes(skill)).length;
+        // --- Export & Graphing ---
+        function openReport() {
+            document.getElementById('reportModal').style.display = 'flex';
+            const ctx = document.getElementById('exportChart').getContext('2d');
+            
+            // Calculate proficiency counts
+            const skillCounts = state.skills.map(skill => {
+                return state.techs.filter(t => t.pro.includes(skill)).length;
             });
 
-            if (myChart) myChart.destroy();
-            myChart = new Chart(ctx, {
+            if(chartInstance) chartInstance.destroy();
+            chartInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: state.skills,
                     datasets: [{
-                        label: '# of Proficient Techs',
-                        data: dataMap,
-                        backgroundColor: '#3b82f6'
+                        label: 'Proficient Technicians',
+                        data: skillCounts,
+                        backgroundColor: '#2563eb',
+                        borderRadius: 6
                     }]
                 },
-                options: { 
-                    responsive: true,
-                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, ticks: { precision: 0 } }
+                    }
                 }
             });
         }
 
-        // --- RENDERING ---
-        function render() {
-            applyTheme();
-            updateChart();
-            
-            // Render Stats
-            const totalCap = state.technicians.reduce((sum, t) => sum + t.rack_capacity, 0);
-            document.getElementById('stats-container').innerHTML = `
-                <div class="card shadow-sm border-l-4 border-blue-500">
-                    <p class="text-sm opacity-70">Total Technicians</p>
-                    <p class="text-2xl font-bold">${state.technicians.length}</p>
-                </div>
-                <div class="card shadow-sm border-l-4 border-green-500">
-                    <p class="text-sm opacity-70">Total Rack Capacity</p>
-                    <p class="text-2xl font-bold">${totalCap}</p>
-                </div>
-            `;
+        function closeReport() {
+            document.getElementById('reportModal').style.display = 'none';
+        }
 
-            // Render Skills Management List
-            document.getElementById('skills-list').innerHTML = state.skills.map(s => `
-                <span class="bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded flex items-center gap-1">
-                    ${s} <button onclick="removeSkill('${s}')" class="text-red-500 font-bold ml-1">×</button>
+        // --- Render ---
+        function render() {
+            document.getElementById('appBody').className = state.dark ? 'dark' : '';
+            
+            // Render Pills
+            document.getElementById('skill-pills').innerHTML = state.skills.map(s => `
+                <span class="bg-slate-200 dark:bg-slate-700 px-3 py-1 rounded-full text-xs font-medium flex items-center gap-2">
+                    ${s} <button onclick="removeSkill('${s}')" class="text-red-500 hover:text-red-700 font-bold">×</button>
                 </span>
             `).join('');
 
-            // Render Tech Cards
-            document.getElementById('tech-list').innerHTML = state.technicians.map(tech => `
-                <div class="card shadow-sm">
-                    <div class="flex justify-between items-start mb-4">
+            // Render Techs
+            document.getElementById('tech-container').innerHTML = state.techs.map(t => `
+                <div class="card shadow-md animate-in fade-in duration-500">
+                    <div class="flex justify-between items-start mb-6">
                         <div>
-                            <h3 class="text-lg font-bold">${tech.name}</h3>
-                            <p class="text-sm opacity-70">${tech.role} • Capacity: ${tech.rack_capacity}</p>
+                            <h3 class="text-xl font-bold">${t.name}</h3>
+                            <p class="text-sm text-slate-500">${t.role} • Rack Capacity: ${t.cap}</p>
                         </div>
-                        <button onclick="deleteTech(${tech.id})" class="text-red-400 hover:text-red-600 text-sm">Delete</button>
+                        <button onclick="deleteTech(${t.id})" class="text-slate-400 hover:text-red-500 transition">Delete</button>
                     </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                        ${state.skills.map(skill => {
-                            const isProf = tech.proficiencies.includes(skill);
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                        ${state.skills.map(s => {
+                            const active = t.pro.includes(s);
                             return `
-                                <label class="flex items-center space-x-2 text-sm cursor-pointer p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-600">
-                                    <input type="checkbox" ${isProf ? 'checked' : ''} onchange="toggleProficiency(${tech.id}, '${skill}')">
-                                    <span class="${isProf ? 'text-green-500 font-bold' : 'opacity-50'}">${skill}</span>
-                                </label>
+                                <div onclick="togglePro(${t.id}, '${s}')" class="flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition ${active ? 'bg-blue-50 border-blue-400 dark:bg-blue-900/30' : 'hover:bg-slate-50 dark:hover:bg-slate-700'}">
+                                    <input type="checkbox" ${active ? 'checked' : ''} class="w-4 h-4 text-blue-600">
+                                    <span class="text-sm ${active ? 'font-bold' : 'opacity-60'}">${s}</span>
+                                </div>
                             `;
                         }).join('')}
                     </div>
